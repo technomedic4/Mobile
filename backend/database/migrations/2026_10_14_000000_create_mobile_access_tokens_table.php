@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('mobile_access_tokens', function (Blueprint $table): void {
             $table->increments('id');
-            $table->unsignedInteger('user_id');
+            $table->integer('user_id');
             $table->char('token_hash', 64)->unique();
             $table->timestamp('expires_at');
             $table->timestamp('last_used_at')->nullable();

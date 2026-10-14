@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('patient_access_requests', function (Blueprint $table): void {
             $table->increments('id');
-            $table->unsignedInteger('requester_user_id');
-            $table->unsignedInteger('patient_id')->nullable();
+            $table->integer('requester_user_id');
+            $table->integer('patient_id')->nullable();
             $table->string('national_id', 16);
             $table->string('patient_name', 150);
             $table->string('phone_number', 20);
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('relationship', 40);
             $table->string('status', 20)->default('Pending');
-            $table->unsignedInteger('reviewed_by_user_id')->nullable();
+            $table->integer('reviewed_by_user_id')->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
 
@@ -41,10 +41,10 @@ return new class extends Migration
 
         Schema::create('authorized_patient_accounts', function (Blueprint $table): void {
             $table->increments('id');
-            $table->unsignedInteger('patient_id');
-            $table->unsignedInteger('account_user_id');
+            $table->integer('patient_id');
+            $table->integer('account_user_id');
             $table->string('relationship', 40);
-            $table->unsignedInteger('approved_by_user_id');
+            $table->integer('approved_by_user_id');
             $table->timestamp('approved_at');
             $table->timestamps();
 

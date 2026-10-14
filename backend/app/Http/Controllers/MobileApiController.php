@@ -170,7 +170,7 @@ class MobileApiController extends Controller
             'reports' => [],
             'bills' => [],
             'notifications' => [],
-            'currently_serving' => [],
+            'currently_serving' => (object) [],
             'pending_access_requests' => DB::table('patient_access_requests')
                 ->join('patient_profiles', 'patient_profiles.id', '=', 'patient_access_requests.patient_id')
                 ->where('patient_profiles.user_id', $request->user()->id)
