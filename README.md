@@ -5,27 +5,52 @@ di [backend](./backend). Kedua aplikasi membaca dan menulis data pasien serta
 pendaftaran pada database rumah sakit yang sama; aplikasi mobile tidak lagi
 menggunakan akun demo atau data contoh lokal.
 
-## Menjalankan aplikasi mobile
+## Menjalankan backend API lokal
+
+Jalankan API Laravel dari folder `backend` supaya emulator Android dan browser
+di komputer dapat mengakses server:
+
+```powershell
+cd backend
+composer install
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Pastikan `.env` backend sudah menunjuk ke database portal yang benar dan migrasi
+yang diperlukan sudah diterapkan.
+
+## Menjalankan aplikasi mobile dan web
 
 1. Siapkan backend Laravel dan database yang dipakai portal web. Pastikan migrasi
    portal web yang sudah ada telah diterapkan sebelum menerapkan migrasi mobile.
-2. Konfigurasikan URL HTTPS publik API, atau untuk emulator Android lokal gunakan
-   `http://10.0.2.2:8000/api/v1`.
-3. Jalankan:
+2. Untuk development lokal, alamat API otomatis diarahkan ke
+   `http://10.0.2.2:8000/api/v1` pada emulator Android dan
+   `http://localhost:8000/api/v1` pada web/perangkat desktop.
+3. Buka terminal kedua di root project (`Mobile-project`), lalu ambil dependency
+   dan jalankan target yang diperlukan:
 
    ```powershell
    flutter pub get
-   flutter run --dart-define=SIMRS_API_BASE_URL=https://alamat-server/api/v1
+   flutter run
    ```
 
-   Untuk emulator Android dengan server lokal:
+   Untuk web, origin lokal sudah diizinkan CORS secara default:
 
    ```powershell
-   flutter run --dart-define=SIMRS_API_BASE_URL=http://10.0.2.2:8000/api/v1
+   flutter run -d chrome --web-port=5000
    ```
 
-   Jangan gunakan HTTP cleartext untuk build rilis atau jaringan publik. Android
-   hanya mengaktifkan cleartext di manifest varian debug; rilis memerlukan HTTPS.
+Untuk HP Android fisik, gunakan IP LAN komputer yang menjalankan backend dan
+pastikan firewall mengizinkan port 8000:
+
+```powershell
+flutter run --dart-define=SIMRS_API_BASE_URL=http://192.168.x.x:8000/api/v1
+```
+
+Override yang sama dapat digunakan untuk web/server selain alamat lokal default.
+Atur `CORS_ALLOWED_ORIGINS` di `.env` backend ke origin web yang sebenarnya,
+dipisahkan koma. HTTP lokal hanya diizinkan pada build debug; build rilis wajib
+menggunakan HTTPS.
 
 ## Endpoint integrasi
 
@@ -70,13 +95,6 @@ PRD sudah terpenuhi. Audit akses menyeluruh, refresh/revocation policy token,
 notifikasi near-real-time, billing, patient reports dengan persetujuan,
 telekonsultasi mobile, pemulihan password, perubahan profil, dan audit log masih
 perlu diselesaikan sebelum penggunaan klinis/produksi.
-
-## Validasi
-
-```powershell
-flutter analyze
-flutter test
-```
 
 ## Validasi
 

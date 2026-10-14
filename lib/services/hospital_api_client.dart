@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -45,9 +46,19 @@ class HospitalApiClient {
   })  : _tokenStore = tokenStore ?? SecureAccessTokenStore(),
         _client = client ?? http.Client();
 
-  static const configuredBaseUrl = String.fromEnvironment(
+  static const _configuredBaseUrl = String.fromEnvironment(
     'SIMRS_API_BASE_URL',
   );
+
+  static String get configuredBaseUrl {
+    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    if (!kDebugMode) return '';
+
+    final host = kIsWeb || defaultTargetPlatform != TargetPlatform.android
+        ? 'localhost'
+        : '10.0.2.2';
+    return 'http://$host:8000/api/v1';
+  }
 
   final String baseUrl;
   final AccessTokenStore _tokenStore;
@@ -86,13 +97,10 @@ class HospitalApiClient {
     }
 
     final uri = Uri.parse('${configured.replaceFirst(RegExp(r'/+$'), '')}$path');
-    final isLocalDevelopment = const {
-      'localhost',
-      '127.0.0.1',
-      '10.0.2.2',
-      '::1',
-    }.contains(uri.host);
-    if (uri.scheme != 'https' && !(uri.scheme == 'http' && isLocalDevelopment)) {
+    if (uri.scheme != 'https' &&
+        !(uri.scheme == 'http' &&
+            kDebugMode &&
+            _isLocalDevelopmentHost(uri.host))) {
       throw const HospitalApiException(
         'Koneksi server harus menggunakan HTTPS.',
       );
@@ -159,5 +167,23 @@ class HospitalApiClient {
     }
 
     return payload;
+  }
+
+  static bool _isLocalDevelopmentHost(String host) {
+    if (const {'localhost', '127.0.0.1', '10.0.2.2', '::1'}.contains(host)) {
+      return true;
+    }
+
+    final octets = host.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 ||
+        octets.any((octet) => octet == null || octet < 0 || octet > 255)) {
+      return false;
+    }
+
+    final first = octets[0]!;
+    final second = octets[1]!;
+    return first == 10 ||
+        (first == 192 && second == 168) ||
+        (first == 172 && second >= 16 && second <= 31);
   }
 }
