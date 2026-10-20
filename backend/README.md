@@ -7,6 +7,34 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Koneksi MySQL untuk API mobile dan portal web
+
+Portal web dan aplikasi mobile memakai backend Laravel ini, sehingga keduanya
+mengakses database MySQL yang sama melalui backend. Jangan menghubungkan aplikasi
+mobile langsung ke server MySQL.
+
+1. Buat `backend/.env` dari `backend/.env.example`.
+2. Atur `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`
+   sesuai server MySQL Anda. Jangan commit file `.env` atau membagikan kata sandi
+   database.
+3. Pastikan akun MySQL memiliki hak akses ke database tersebut, lalu jalankan
+   dari folder `backend`:
+
+   ```powershell
+   php artisan config:clear
+   php artisan migrate:status
+   ```
+
+   Tinjau status dan skema database terlebih dahulu. Migrasi proyek harus
+   diterapkan hanya pada database yang benar; jangan menjalankan migrasi secara
+   membabi buta pada database produksi.
+4. Jalankan API Laravel dan konfigurasi URL API pada aplikasi Flutter sesuai
+   petunjuk di README proyek utama.
+
+Migrasi inti untuk tabel pasien, jadwal, dan pendaftaran harus sudah tersedia
+dari proyek web. Migrasi mobile menambahkan tabel token dan otorisasi pasien;
+migrasi tersebut mengasumsikan tabel inti web yang direferensikannya sudah ada.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

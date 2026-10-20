@@ -38,6 +38,7 @@ class Appointment {
   final String queueNumber;
   final String status;
   final String registrationStatus;
+  final String consultationType;
 
   const Appointment({
     required this.id,
@@ -51,6 +52,47 @@ class Appointment {
     this.schedule = '08:00',
     this.complaint = '',
     this.registrationStatus = 'CONFIRMED',
+    this.consultationType = 'In-Person',
+  });
+}
+
+class Teleconsultation {
+  final Appointment appointment;
+
+  const Teleconsultation(this.appointment);
+}
+
+class TeleconsultationMessage {
+  final String id;
+  final String senderName;
+  final String senderRole;
+  final String message;
+  final DateTime? sentAt;
+  final bool isMine;
+
+  const TeleconsultationMessage({
+    required this.id,
+    required this.senderName,
+    required this.senderRole,
+    required this.message,
+    required this.sentAt,
+    required this.isMine,
+  });
+}
+
+class PaymentSubmission {
+  final String id;
+  final double amount;
+  final String method;
+  final String status;
+  final String? reviewNote;
+
+  const PaymentSubmission({
+    required this.id,
+    required this.amount,
+    required this.method,
+    required this.status,
+    required this.reviewNote,
   });
 }
 
@@ -73,12 +115,12 @@ class DoctorSchedule {
 
   factory DoctorSchedule.fromJson(Map<String, dynamic> json) {
     return DoctorSchedule(
-      id: json['id'] as String,
-      department: json['department'] as String,
-      doctor: json['doctor'] as String,
-      startTime: json['start_time'] as String,
-      endTime: json['end_time'] as String,
-      remainingQuota: json['remaining_quota'] as int,
+      id: json['id'].toString(),
+      department: json['department_name'] as String,
+      doctor: json['doctor_name'] as String,
+      startTime: (json['start_time'] as String).substring(0, 5),
+      endTime: (json['end_time'] as String).substring(0, 5),
+      remainingQuota: (json['remaining_slots'] as num).toInt(),
     );
   }
 }
@@ -148,6 +190,10 @@ class Bill {
   final double totalAmount;
   final String status;
   final List<BillItem> items;
+  final String billNumber;
+  final double amountPaid;
+  final double balanceDue;
+  final List<PaymentSubmission> paymentSubmissions;
 
   const Bill({
     required this.id,
@@ -157,14 +203,23 @@ class Bill {
     required this.status,
     required this.items,
     this.date = '',
+    this.billNumber = '',
+    this.amountPaid = 0,
+    this.balanceDue = 0,
+    this.paymentSubmissions = const [],
   });
 }
 
 class BillItem {
   final String name;
   final double price;
+  final int quantity;
 
-  const BillItem({required this.name, required this.price});
+  const BillItem({
+    required this.name,
+    required this.price,
+    this.quantity = 1,
+  });
 }
 
 class HospitalNotification {

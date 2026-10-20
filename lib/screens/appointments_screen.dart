@@ -212,6 +212,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   String? _patientId;
   String _date = _today();
   String? _scheduleId;
+  String _consultationType = 'In-Person';
   late Future<List<DoctorSchedule>> _schedulesFuture;
   bool _submitting = false;
 
@@ -282,6 +283,30 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                   onChanged: (value) => setState(() => _patientId = value),
                   validator: (value) => value == null ? 'Pilih pasien.' : null,
                 ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: _consultationType,
+                decoration: const InputDecoration(
+                  labelText: 'Jenis layanan',
+                  prefixIcon: Icon(Icons.medical_services_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'In-Person',
+                    child: Text('Kunjungan langsung'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Teleconsultation',
+                    child: Text('Telekonsultasi via chat'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _consultationType = value);
+                  }
+                },
+              ),
               const SizedBox(height: 16),
               FutureBuilder<List<DoctorSchedule>>(
                 future: _schedulesFuture,
@@ -450,6 +475,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         content: Text(
           'Pasien: ${patient.name}\n'
           'Layanan: ${schedule.department}\n'
+          'Jenis konsultasi: ${_consultationType == 'Teleconsultation' ? 'Telekonsultasi' : 'Kunjungan langsung'}\n'
           'Dokter: ${schedule.doctor}\n'
           'Jadwal: $_date pukul ${schedule.startTime}',
         ),
@@ -474,6 +500,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         scheduleId: schedule.id,
         date: _date,
         complaint: _complaintController.text,
+        consultationType: _consultationType,
       );
     } on HospitalApiException catch (error) {
       if (mounted) {

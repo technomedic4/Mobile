@@ -162,12 +162,20 @@ class MobileApiController extends Controller
             ->get()
             ->map(fn (object $appointment): array => $this->appointmentPayload($appointment));
 
+        $visits = $this->visitsForPatients($patientIds);
+
         return response()->json([
             'user' => $this->userPayload($request->user()),
             'patients' => $this->patientsForAccount($request),
             'appointments' => $appointments,
-            'visits' => $this->visitsForPatients($patientIds),
-            'reports' => [],
+            'visits' => $visits,
+            'reports' => array_map(static fn (array $visit): array => [
+                'id' => 'report-'.$visit['id'],
+                'patient_id' => $visit['patient_id'],
+                'date' => $visit['date'],
+                'title' => 'Ringkasan pemeriksaan',
+                'content' => "Diagnosis: {$visit['diagnosis']}\nTindakan: {$visit['treatment']}",
+            ], $visits),
             'bills' => [],
             'notifications' => [],
             'currently_serving' => (object) [],
@@ -613,6 +621,7 @@ class MobileApiController extends Controller
             ->whereIn('doctor_consultations.patient_id', $patientIds)
             ->where('appointments.status', 'Completed')
             ->select([
+                'doctor_consultations.id as consultation_id',
                 'doctor_consultations.patient_id',
                 'appointments.appointment_date',
                 'departments.name as department_name',
@@ -622,9 +631,10 @@ class MobileApiController extends Controller
                 'doctor_consultations.treatment_plan',
             ])
             ->orderByDesc('appointments.appointment_date')
+            ->orderByDesc('doctor_consultations.id')
             ->get()
             ->map(static fn (object $visit): array => [
-                'id' => (string) $visit->patient_id.'-'.$visit->appointment_date,
+                'id' => (string) $visit->consultation_id,
                 'patient_id' => (string) $visit->patient_id,
                 'date' => (string) $visit->appointment_date,
                 'poly' => $visit->department_name,
