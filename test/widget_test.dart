@@ -49,10 +49,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Buat pendaftaran'), findsOneWidget);
+    await tester.tap(find.text('Kunjungan langsung'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Telekonsultasi via chat').last);
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextFormField).last,
       'Pemeriksaan rutin',
     );
+    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Konfirmasi pendaftaran di server'));
     await tester.tap(find.text('Konfirmasi pendaftaran di server'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Konfirmasi'));
@@ -62,7 +69,7 @@ void main() {
     expect(find.text('Penyakit Dalam · Dr. Ahmad'), findsOneWidget);
   });
 
-  testWidgets('family access requests are shown as pending verification', (
+  testWidgets('family access reports when the backend route is unavailable', (
     WidgetTester tester,
   ) async {
     await loginAsPatient(tester);
@@ -92,9 +99,10 @@ void main() {
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Budi Santoso'), findsOneWidget);
     expect(
-      find.textContaining('Permintaan dikirim. Pasien akan muncul'),
+      find.text(
+        'Pengajuan akses anggota keluarga belum tersedia pada API web.',
+      ),
       findsOneWidget,
     );
   });

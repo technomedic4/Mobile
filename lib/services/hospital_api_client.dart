@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -46,18 +47,14 @@ class HospitalApiClient {
   })  : _tokenStore = tokenStore ?? SecureAccessTokenStore(),
         _client = client ?? http.Client();
 
-  static const _configuredBaseUrl = String.fromEnvironment(
-    'SIMRS_API_BASE_URL',
-  );
-
   static String get configuredBaseUrl {
-    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
-    if (!kDebugMode) return '';
+    const configured = String.fromEnvironment('SIMRS_API_BASE_URL');
+    if (configured.isNotEmpty) return configured;
 
-    final host = kIsWeb || defaultTargetPlatform != TargetPlatform.android
-        ? 'localhost'
-        : '10.0.2.2';
-    return 'http://$host:8000/api/v1';
+    if (kDebugMode && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000/api/v1';
+    }
+    return '';
   }
 
   final String baseUrl;
@@ -83,44 +80,85 @@ class HospitalApiClient {
   }) =>
       _send('POST', path, body: body, authenticated: authenticated);
 
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required String fileField,
+    required Uint8List fileBytes,
+    required String fileName,
+    Map<String, String> fields = const {},
+  }) async {
+    final uri = _buildUri(path);
+    final token = await _tokenStore.read();
+    if (token == null || token.isEmpty) {
+      throw const HospitalApiException('Silakan masuk kembali.', statusCode: 401);
+    }
+    final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      })
+      ..fields.addAll(fields)
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: fileName,
+        ),
+      );
+    return _sendPrepared(request);
+  }
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {
     Map<String, Object?>? body,
     required bool authenticated,
   }) async {
+    final uri = _buildUri(path);
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (body != null) headers['Content-Type'] = 'application/json';
+    if (authenticated) {
+      final token = await _tokenStore.read();
+      if (token == null || token.isEmpty) {
+        throw const HospitalApiException(
+          'Silakan masuk kembali.',
+          statusCode: 401,
+        );
+      }
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final request = http.Request(method, uri)
+      ..headers.addAll(headers)
+      ..body = body == null ? '' : jsonEncode(body);
+    return _sendPrepared(request);
+  }
+
+  Uri _buildUri(String path) {
     final configured = baseUrl.trim();
     if (configured.isEmpty) {
       throw const HospitalApiException(
         'Server belum dikonfigurasi. Atur SIMRS_API_BASE_URL saat menjalankan aplikasi.',
       );
     }
-
     final uri = Uri.parse('${configured.replaceFirst(RegExp(r'/+$'), '')}$path');
-    if (uri.scheme != 'https' &&
-        !(uri.scheme == 'http' &&
-            kDebugMode &&
-            _isLocalDevelopmentHost(uri.host))) {
+    final isLocalDevelopment = const {
+      'localhost',
+      '127.0.0.1',
+      '10.0.2.2',
+      '::1',
+    }.contains(uri.host);
+    if (uri.scheme != 'https' && !(uri.scheme == 'http' && isLocalDevelopment)) {
       throw const HospitalApiException(
         'Koneksi server harus menggunakan HTTPS.',
       );
     }
+    return uri;
+  }
 
-    final headers = <String, String>{'Accept': 'application/json'};
-    if (body != null) headers['Content-Type'] = 'application/json';
-    if (authenticated) {
-      final token = await _tokenStore.read();
-      if (token == null || token.isEmpty) {
-        throw const HospitalApiException('Silakan masuk kembali.', statusCode: 401);
-      }
-      headers['Authorization'] = 'Bearer $token';
-    }
-
+  Future<Map<String, dynamic>> _sendPrepared(http.BaseRequest request) async {
     late http.Response response;
     try {
-      final request = http.Request(method, uri)
-        ..headers.addAll(headers)
-        ..body = body == null ? '' : jsonEncode(body);
       final streamed = await _client.send(request).timeout(
             const Duration(seconds: 15),
           );
@@ -167,23 +205,5 @@ class HospitalApiClient {
     }
 
     return payload;
-  }
-
-  static bool _isLocalDevelopmentHost(String host) {
-    if (const {'localhost', '127.0.0.1', '10.0.2.2', '::1'}.contains(host)) {
-      return true;
-    }
-
-    final octets = host.split('.').map(int.tryParse).toList();
-    if (octets.length != 4 ||
-        octets.any((octet) => octet == null || octet < 0 || octet > 255)) {
-      return false;
-    }
-
-    final first = octets[0]!;
-    final second = octets[1]!;
-    return first == 10 ||
-        (first == 192 && second == 168) ||
-        (first == 172 && second >= 16 && second <= 31);
   }
 }

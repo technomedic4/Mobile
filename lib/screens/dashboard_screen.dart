@@ -6,6 +6,7 @@ import '../providers/hospital_provider.dart';
 import 'appointments_screen.dart';
 import 'information_screens.dart';
 import 'patients_screen.dart';
+import 'teleconsultations_screen.dart';
 
 class PatientPortalScreen extends StatefulWidget {
   const PatientPortalScreen({super.key});
@@ -190,8 +191,7 @@ class _HomeTab extends StatelessWidget {
         if (bill == null)
           const _EmptyCard(
             icon: Icons.check_circle_outline,
-            message:
-                'Data tagihan belum tersedia dari modul keuangan di portal web.',
+            message: 'Data tagihan belum tersedia dari modul keuangan di portal web.',
           )
         else
           Card(
@@ -202,7 +202,7 @@ class _HomeTab extends StatelessWidget {
               title: Text(bill.patientName),
               subtitle: Text('${bill.date} · ${_billStatus(bill.status)}'),
               trailing: Text(
-                _rupiah(bill.totalAmount),
+                _rupiah(bill.balanceDue),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               onTap: () => _open(context, const BillListScreen()),
@@ -212,13 +212,13 @@ class _HomeTab extends StatelessWidget {
         Card(
           color: const Color(0xFFEAF4F3),
           child: ListTile(
-            leading: const Icon(Icons.video_call_outlined),
-            title: const Text('Konsultasi dengan dokter'),
+            leading: const Icon(Icons.chat_outlined),
+            title: const Text('Telekonsultasi'),
             subtitle: const Text(
-              'Portal web mendukung chat telekonsultasi; aplikasi mobile belum '
-              'memiliki ruang konsultasi.',
+              'Buka ruang chat untuk mengirim pesan kepada dokter.',
             ),
-            trailing: const Icon(Icons.info_outline),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _open(context, const TeleconsultationsScreen()),
           ),
         ),
       ],
@@ -345,6 +345,12 @@ class _MoreTab extends StatelessWidget {
           title: 'Riwayat kunjungan & laporan',
           subtitle: 'Informasi pemeriksaan yang dibagikan kepada pasien',
           onTap: () => _open(context, const VisitHistoryScreen()),
+        ),
+        _MoreTile(
+          icon: Icons.chat_outlined,
+          title: 'Telekonsultasi',
+          subtitle: 'Kirim pesan dan baca balasan dokter',
+          onTap: () => _open(context, const TeleconsultationsScreen()),
         ),
         _MoreTile(
           icon: Icons.receipt_long_outlined,
