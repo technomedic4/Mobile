@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -52,7 +51,7 @@ class HospitalApiClient {
     if (configured.isNotEmpty) return configured;
 
     if (kDebugMode && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api/v1';
+      return 'http://127.0.0.1:8000/api/v1';
     }
     return '';
   }

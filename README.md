@@ -14,10 +14,18 @@ rumah sakit yang sama. Aplikasi mobile tidak terhubung langsung ke MySQL.
    flutter run
    ```
 
-   Android Emulator menggunakan `http://10.0.2.2:8000/api/v1` secara otomatis
-   pada mode debug. Untuk perangkat fisik, gunakan alamat server yang dapat
-   dijangkau perangkat dan atur `SIMRS_API_BASE_URL`; build rilis harus memakai
-   HTTPS.
+   Sebelum menjalankan aplikasi di Android Emulator, teruskan port API komputer
+   ke emulator:
+
+   ```powershell
+   adb reverse tcp:8000 tcp:8000
+   flutter run
+   ```
+
+   Mode debug Android menggunakan `http://127.0.0.1:8000/api/v1` melalui
+   terusan tersebut. Jalankan kembali `adb reverse` setelah emulator dimulai
+   ulang. Untuk perangkat fisik, gunakan alamat server yang dapat dijangkau
+   perangkat dan atur `SIMRS_API_BASE_URL`; build rilis harus memakai HTTPS.
 
    ```powershell
    flutter run --dart-define=SIMRS_API_BASE_URL=https://server-anda.example/api/v1

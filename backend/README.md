@@ -16,7 +16,9 @@ mobile langsung ke server MySQL.
 1. Buat `backend/.env` dari `backend/.env.example`.
 2. Atur `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`
    sesuai server MySQL Anda. Jangan commit file `.env` atau membagikan kata sandi
-   database.
+   database. Setelah mengganti versi Laragon, pastikan `DB_PORT` menunjuk ke
+   MySQL Laragon yang aktif dan `DB_DATABASE` sama persis dengan nama database
+   yang dipulihkan.
 3. Pastikan akun MySQL memiliki hak akses ke database tersebut, lalu jalankan
    dari folder `backend`:
 
@@ -28,7 +30,10 @@ mobile langsung ke server MySQL.
    Tinjau status dan skema database terlebih dahulu. Migrasi proyek harus
    diterapkan hanya pada database yang benar; jangan menjalankan migrasi secara
    membabi buta pada database produksi.
-4. Jalankan API Laravel dan konfigurasi URL API pada aplikasi Flutter sesuai
+4. Backend ini memerlukan PHP 8.3 atau lebih baru (`composer.json`). Setelah
+   mengganti versi Laragon, pastikan PHP CLI yang dipakai `php artisan` juga
+   versi yang kompatibel; periksa dengan `php -v`.
+5. Jalankan API Laravel dan konfigurasi URL API pada aplikasi Flutter sesuai
    petunjuk di README proyek utama.
 
 Migrasi inti untuk tabel pasien, jadwal, dan pendaftaran harus sudah tersedia

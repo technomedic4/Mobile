@@ -9,7 +9,7 @@ import 'hospital_test_fakes.dart';
 void main() {
   group('HospitalProvider shared API', () {
     test(
-      'login loads patients, appointments, and authorized medical records',
+      'login loads the patient portal from the shared portal endpoint',
       () async {
         final fixture = HospitalApiFixture();
 
@@ -28,13 +28,12 @@ void main() {
         );
         expect(fixture.provider.reports.single.title, 'Ringkasan pemeriksaan');
         expect(fixture.requests.first.headers['authorization'], isNull);
-        expect(fixture.requests[1].url.path, '/api/v1/me');
+        expect(fixture.requests[1].url.path, '/api/v1/portal');
         expect(
           fixture.requests.any(
-            (request) =>
-                request.url.path == '/api/v1/patients/12/medical-records',
+            (request) => request.url.path == '/api/v1/patients',
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           fixture.requests[1].headers['authorization'],
@@ -115,7 +114,10 @@ void main() {
             )
             .single;
         expect(jsonDecode(booking.body)['doctor_schedule_id'], 11);
-        expect(jsonDecode(booking.body)['consultation_type'], 'Teleconsultation');
+        expect(
+          jsonDecode(booking.body)['consultation_type'],
+          'Teleconsultation',
+        );
       },
     );
 
@@ -146,13 +148,13 @@ void main() {
       );
     });
 
-    test('Android debug builds default to the local emulator API', () {
+    test('Android debug builds default to the forwarded local API', () {
       final previousTargetPlatform = debugDefaultTargetPlatformOverride;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         expect(
           HospitalApiClient.configuredBaseUrl,
-          'http://10.0.2.2:8000/api/v1',
+          'http://127.0.0.1:8000/api/v1',
         );
       } finally {
         debugDefaultTargetPlatformOverride = previousTargetPlatform;

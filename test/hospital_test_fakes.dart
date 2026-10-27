@@ -67,6 +67,38 @@ class HospitalApiFixture {
     if (request.url.path.endsWith('/auth/logout')) {
       return _json(200, {'message': 'Anda telah keluar.'});
     }
+    if (request.url.path.endsWith('/portal')) {
+      return _json(200, {
+        'user': {'id': '7', 'email': 'budi@example.test'},
+        'patients': [_patient],
+        'appointments': appointments,
+        'visits': [
+          {
+            'id': '91',
+            'patient_id': '12',
+            'date': '2026-10-19',
+            'poly': 'Penyakit Dalam',
+            'doctor': 'Dr. Ahmad',
+            'complaint': 'Demam sejak kemarin',
+            'diagnosis': 'Infeksi saluran pernapasan',
+            'treatment': 'Istirahat dan minum obat sesuai resep.',
+          },
+        ],
+        'reports': [
+          {
+            'id': 'report-91',
+            'patient_id': '12',
+            'date': '2026-10-19',
+            'title': 'Ringkasan pemeriksaan',
+            'content': 'Diagnosis: Infeksi saluran pernapasan',
+          },
+        ],
+        'bills': [],
+        'notifications': [],
+        'currently_serving': {},
+        'pending_access_requests': [],
+      });
+    }
     if (request.url.path.endsWith('/me')) {
       return _json(200, {
         'data': {'id': '7', 'email': 'budi@example.test'},

@@ -153,19 +153,14 @@ class HospitalProvider extends ChangeNotifier {
   }
 
   Future<void> refreshPortal() async {
-    final user = _unwrapData(await _api.get('/me'));
-    final patientData = _asList((await _api.get('/patients'))['data']);
-    final appointmentPage = _asMap((await _api.get('/appointments'))['data']);
-    final appointmentData = _asList(appointmentPage['data']);
-    final teleconsultationData = await _fetchAllPages('/teleconsultations');
-    final billData = await _fetchAllPages('/bills');
+    final portal = _unwrapData(await _api.get('/portal'));
+    final user = _asMap(portal['user']);
+    final patientData = _asList(portal['patients']);
+    final appointmentData = _asList(portal['appointments']);
+    final visitData = _asList(portal['visits']);
+    final reportData = _asList(portal['reports']);
+    final billData = _asList(portal['bills']);
     final patients = patientData.map(_patientFromJson).toList();
-    final recordPages = await Future.wait(patients.map(_fetchMedicalRecords));
-    final records = recordPages.expand((page) => page).toList();
-    final visitData = records
-        .where((record) => record['record_type'] == 'consultation')
-        .toList();
-    final reportData = visitData.map(_consultationReportFromRecord).toList();
 
     _currentEmail = user['email'] as String? ?? '';
     _currentUserId = user['id']?.toString();
@@ -185,22 +180,41 @@ class HospitalProvider extends ChangeNotifier {
     _teleconsultations
       ..clear()
       ..addAll(
-        teleconsultationData.map(
-          (item) => Teleconsultation(_appointmentFromJson(item)),
-        ),
+        appointmentData
+            .where((item) => item['consultation_type'] == 'Teleconsultation')
+            .map((item) => Teleconsultation(_appointmentFromJson(item))),
       );
     _visits
       ..clear()
-      ..addAll(records.map(_visitFromMedicalRecord));
+      ..addAll(visitData.map(_visitFromPortal));
     _reports
       ..clear()
       ..addAll(reportData.map(_reportFromJson));
     _bills
       ..clear()
       ..addAll(billData.map(_billFromJson));
-    _notifications.clear();
-    _pendingAccessRequests.clear();
-    _currentlyServing = {};
+    _notifications
+      ..clear()
+      ..addAll(
+        _asList(portal['notifications']).map(
+          (item) => HospitalNotification(
+            id: item['id'].toString(),
+            title: item['title'] as String? ?? '',
+            message: item['message'] as String? ?? '',
+            date: item['date'] as String? ?? '',
+            isRead: item['is_read'] as bool? ?? false,
+          ),
+        ),
+      );
+    _pendingAccessRequests
+      ..clear()
+      ..addAll(
+        _asList(portal['pending_access_requests'])
+            .map(PatientAccessRequest.fromJson),
+      );
+    _currentlyServing = _asMap(portal['currently_serving'])
+        .map((key, value) => MapEntry(key, value.toString()));
+    _paymentInstructions = _asMap(portal['payment_instructions'] ?? const {});
     _errorMessage = null;
     notifyListeners();
   }
@@ -298,9 +312,7 @@ class HospitalProvider extends ChangeNotifier {
 
   Future<bool> canSendTeleconsultationMessage(String appointmentId) async {
     final data = _unwrapData(
-      await _api.get(
-        '/teleconsultations/$appointmentId/messages?per_page=1',
-      ),
+      await _api.get('/teleconsultations/$appointmentId/messages?per_page=1'),
     );
     return data['can_send_messages'] as bool? ?? false;
   }
@@ -313,30 +325,6 @@ class HospitalProvider extends ChangeNotifier {
       '/teleconsultations/$appointmentId/messages',
       body: {'message': message.trim()},
     );
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchMedicalRecords(
-    Patient patient,
-  ) async {
-    final records = <Map<String, dynamic>>[];
-    var page = 1;
-    var lastPage = 1;
-    do {
-      final response = _unwrapData(
-        await _api.get(
-          '/patients/${patient.id}/medical-records?per_page=100&page=$page',
-        ),
-      );
-      final pageData = _asMap(response['records']);
-      records.addAll(
-        _asList(pageData['data'])
-            .map((record) => {...record, 'patient_id': patient.id}),
-      );
-      page = (pageData['current_page'] as num?)?.toInt() ?? page;
-      lastPage = (pageData['last_page'] as num?)?.toInt() ?? page;
-      page++;
-    } while (page <= lastPage);
-    return records;
   }
 
   Future<List<DoctorSchedule>> schedulesForDate(String date) async {
@@ -515,7 +503,8 @@ class HospitalProvider extends ChangeNotifier {
             (item) => BillItem(
               name: item['item_name'] as String? ?? '',
               quantity: (item['quantity'] as num?)?.toInt() ?? 1,
-              price: (item['subtotal'] as num?)?.toDouble() ??
+              price:
+                  (item['subtotal'] as num?)?.toDouble() ??
                   (item['unit_price'] as num?)?.toDouble() ??
                   0,
             ),
@@ -535,50 +524,18 @@ class HospitalProvider extends ChangeNotifier {
     );
   }
 
-  static MedicalVisit _visitFromMedicalRecord(Map<String, dynamic> json) {
-    final isAdmission = json['record_type'] == 'inpatient_admission';
-    final admissionStatus = json['status'] == 'Admitted'
-        ? 'Masih dirawat'
-        : 'Sudah pulang';
-    final occurredAt = json['occurred_at'] as String? ?? '';
-    final admissionDetails = [
-      if ((json['room_number'] as String? ?? '').isNotEmpty)
-        'Kamar ${json['room_number']}',
-      if ((json['bed_number'] as String? ?? '').isNotEmpty)
-        'Tempat tidur ${json['bed_number']}',
-    ].join(' · ');
-
+  static MedicalVisit _visitFromPortal(Map<String, dynamic> json) {
     return MedicalVisit(
-      id: '${json['patient_id']}-${json['record_type']}-${json['id']}',
+      id: json['id'].toString(),
       patientId: json['patient_id'].toString(),
-      date: occurredAt.length >= 10 ? occurredAt.substring(0, 10) : occurredAt,
-      poly: isAdmission
-          ? 'Rawat Inap'
-          : json['department_name'] as String? ?? '',
-      doctor: isAdmission ? 'Rawat inap' : json['doctor_name'] as String? ?? '',
-      complaint: isAdmission
-          ? json['admission_reason'] as String? ?? ''
-          : json['initial_complaint'] as String? ?? '',
-      diagnosis: isAdmission
-          ? admissionStatus
-          : json['diagnosis'] as String? ?? '',
-      treatment: isAdmission
-          ? admissionDetails
-          : json['treatment_plan'] as String? ?? '',
+      date: json['date'] as String? ?? '',
+      poly: json['poly'] as String? ?? '',
+      doctor: json['doctor'] as String? ?? '',
+      complaint: json['complaint'] as String? ?? '',
+      diagnosis: json['diagnosis'] as String? ?? '',
+      treatment: json['treatment'] as String? ?? '',
     );
   }
-
-  static Map<String, dynamic> _consultationReportFromRecord(
-    Map<String, dynamic> record,
-  ) => {
-    'id': 'report-${record['patient_id']}-${record['id']}',
-    'patient_id': record['patient_id'],
-    'date': record['occurred_at'] as String? ?? '',
-    'title': 'Ringkasan pemeriksaan',
-    'content':
-        'Diagnosis: ${record['diagnosis'] ?? '-'}\n'
-        'Tindakan: ${record['treatment_plan'] ?? '-'}',
-  };
 
   static PatientReport _reportFromJson(Map<String, dynamic> json) =>
       PatientReport(
