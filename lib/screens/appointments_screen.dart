@@ -211,6 +211,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   final _complaintController = TextEditingController();
   String? _patientId;
   String _date = _today();
+  String? _department;
   String? _scheduleId;
   String _consultationType = 'In-Person';
   late Future<List<DoctorSchedule>> _schedulesFuture;
@@ -323,7 +324,37 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final schedules = snapshot.data!;
-                  if (schedules.isEmpty) {
+                  final departments = schedules
+                      .map((schedule) => schedule.department)
+                      .toSet()
+                      .toList();
+                  final selectedDepartment = departments.contains(_department)
+                      ? _department
+                      : departments.cast<String?>().firstWhere(
+                          (department) =>
+                              department?.toLowerCase() == 'poli umum' ||
+                              department?.toLowerCase() == 'umum',
+                          orElse: () => null,
+                        );
+                  if (_department != selectedDepartment) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _department = selectedDepartment;
+                          _scheduleId = null;
+                        });
+                      }
+                    });
+                  }
+                  final departmentSchedules = selectedDepartment == null
+                      ? <DoctorSchedule>[]
+                      : schedules
+                            .where(
+                              (schedule) =>
+                                  schedule.department == selectedDepartment,
+                            )
+                            .toList();
+                  if (departments.isEmpty) {
                     return const Card(
                       child: Padding(
                         padding: EdgeInsets.all(16),
@@ -334,9 +365,11 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                     );
                   }
                   final selectedScheduleId =
-                      schedules.any((schedule) => schedule.id == _scheduleId)
+                      departmentSchedules.any(
+                        (schedule) => schedule.id == _scheduleId,
+                      )
                       ? _scheduleId
-                      : schedules.first.id;
+                      : departmentSchedules.firstOrNull?.id;
                   if (_scheduleId != selectedScheduleId) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
@@ -344,28 +377,69 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                       }
                     });
                   }
-                  return DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    initialValue: selectedScheduleId,
-                    decoration: const InputDecoration(
-                      labelText: 'Poli, dokter, dan jadwal tersedia',
-                      prefixIcon: Icon(Icons.local_hospital_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: schedules
-                        .map(
-                          (schedule) => DropdownMenuItem(
-                            value: schedule.id,
-                            child: Text(
-                              '${schedule.department} · ${schedule.doctor} · '
-                              '${schedule.startTime} (${schedule.remainingQuota} slot)',
-                            ),
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('department-$_date'),
+                        initialValue: selectedDepartment,
+                        decoration: const InputDecoration(
+                          labelText: 'Poli',
+                          prefixIcon: Icon(Icons.local_hospital_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: departments
+                            .map(
+                              (department) => DropdownMenuItem(
+                                value: department,
+                                child: Text(department),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _department = value;
+                            _scheduleId = null;
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? 'Pilih poli.' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      if (departmentSchedules.isEmpty)
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Tidak ada jadwal dokter dengan kuota tersedia '
+                            'untuk poli ini pada tanggal yang dipilih.',
                           ),
                         )
-                        .toList(),
-                    onChanged: (value) => setState(() => _scheduleId = value),
-                    validator: (value) =>
-                        value == null ? 'Pilih jadwal dokter.' : null,
+                      else
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('schedule-$selectedDepartment-$_date'),
+                          isExpanded: true,
+                          initialValue: selectedScheduleId,
+                          decoration: const InputDecoration(
+                            labelText: 'Dokter dan jadwal tersedia',
+                            prefixIcon: Icon(Icons.schedule_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          items: departmentSchedules
+                              .map(
+                                (schedule) => DropdownMenuItem(
+                                  value: schedule.id,
+                                  child: Text(
+                                    '${schedule.doctor} · ${schedule.startTime} '
+                                    '(${schedule.remainingQuota} slot)',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) =>
+                              setState(() => _scheduleId = value),
+                          validator: (value) =>
+                              value == null ? 'Pilih jadwal dokter.' : null,
+                        ),
+                    ],
                   );
                 },
               ),

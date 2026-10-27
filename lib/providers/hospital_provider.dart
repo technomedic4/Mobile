@@ -158,6 +158,7 @@ class HospitalProvider extends ChangeNotifier {
     final patientData = _asList(portal['patients']);
     final appointmentData = _asList(portal['appointments']);
     final visitData = _asList(portal['visits']);
+    final careUpdateData = _asList(portal['care_updates']);
     final reportData = _asList(portal['reports']);
     final billData = _asList(portal['bills']);
     final patients = patientData.map(_patientFromJson).toList();
@@ -184,9 +185,18 @@ class HospitalProvider extends ChangeNotifier {
             .where((item) => item['consultation_type'] == 'Teleconsultation')
             .map((item) => Teleconsultation(_appointmentFromJson(item))),
       );
+    final visits =
+        [
+          ...visitData.map(_visitFromPortal),
+          ...careUpdateData.map(_careUpdateFromPortal),
+        ]..sort((first, second) {
+          final firstDate = DateTime.tryParse(first.date) ?? DateTime(0);
+          final secondDate = DateTime.tryParse(second.date) ?? DateTime(0);
+          return secondDate.compareTo(firstDate);
+        });
     _visits
       ..clear()
-      ..addAll(visitData.map(_visitFromPortal));
+      ..addAll(visits);
     _reports
       ..clear()
       ..addAll(reportData.map(_reportFromJson));
@@ -329,8 +339,7 @@ class HospitalProvider extends ChangeNotifier {
 
   Future<List<DoctorSchedule>> schedulesForDate(String date) async {
     final response = await _api.get('/schedules?date=$date');
-    final data = _asMap(response['data']);
-    return _asList(data['schedules']).map(DoctorSchedule.fromJson).toList();
+    return _asList(response['data']).map(DoctorSchedule.fromJson).toList();
   }
 
   Future<bool> addPatient({
@@ -534,6 +543,43 @@ class HospitalProvider extends ChangeNotifier {
       complaint: json['complaint'] as String? ?? '',
       diagnosis: json['diagnosis'] as String? ?? '',
       treatment: json['treatment'] as String? ?? '',
+    );
+  }
+
+  static MedicalVisit _careUpdateFromPortal(Map<String, dynamic> json) {
+    final vitalSigns = <String>[
+      if (json['temperature_celsius'] != null)
+        'Suhu ${json['temperature_celsius']} °C',
+      if (json['blood_pressure'] is String &&
+          (json['blood_pressure'] as String).isNotEmpty)
+        'Tekanan darah ${json['blood_pressure']} mmHg',
+      if (json['pulse_rate'] != null) 'Nadi ${json['pulse_rate']} x/menit',
+      if (json['respiratory_rate'] != null)
+        'Napas ${json['respiratory_rate']} x/menit',
+      if (json['oxygen_saturation'] != null)
+        'SpO₂ ${json['oxygen_saturation']}%',
+    ];
+    final roomNumber = json['room_number'] as String?;
+    final bedNumber = json['bed_number'] as String?;
+    final roomDetails = [
+      if (roomNumber != null && roomNumber.isNotEmpty) 'Kamar $roomNumber',
+      if (bedNumber != null && bedNumber.isNotEmpty) 'Tempat tidur $bedNumber',
+    ];
+
+    return MedicalVisit(
+      id: 'nursing-${json['id']}',
+      patientId: json['patient_id'].toString(),
+      date: json['date'] as String? ?? '',
+      poly: roomDetails.isEmpty
+          ? 'Rawat Inap'
+          : 'Rawat Inap · ${roomDetails.join(' · ')}',
+      doctor: json['recorded_by'] as String? ?? 'Perawat',
+      complaint: json['notes'] as String? ?? '',
+      diagnosis: '',
+      treatment: '',
+      source: 'nursing',
+      condition: json['condition'] as String? ?? '',
+      vitalSigns: vitalSigns,
     );
   }
 

@@ -466,15 +466,37 @@ class VisitHistoryScreen extends StatelessWidget {
               (visit) => Card(
                 child: ExpansionTile(
                   leading: const Icon(Icons.medical_information_outlined),
-                  title: Text('${visit.poly} · ${visit.date}'),
+                  title: Text(
+                    visit.source == 'nursing'
+                        ? 'Pembaruan perawat · ${visit.date}'
+                        : '${visit.poly} · ${visit.date}',
+                  ),
                   subtitle: Text(
-                    '${_patientName(hospital, visit.patientId)} · ${visit.doctor}',
+                    '${_patientName(hospital, visit.patientId)} · ${visit.doctor}'
+                    '${visit.source == "nursing" ? " · ${visit.poly}" : ""}',
                   ),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   children: [
-                    _MedicalLine(label: 'Keluhan', value: visit.complaint),
-                    _MedicalLine(label: 'Diagnosis', value: visit.diagnosis),
-                    _MedicalLine(label: 'Tindakan', value: visit.treatment),
+                    if (visit.source == 'nursing') ...[
+                      _MedicalLine(
+                        label: 'Kondisi pasien',
+                        value: visit.condition ?? '',
+                      ),
+                      _MedicalLine(
+                        label: 'Catatan perawat',
+                        value: visit.complaint,
+                      ),
+                      _MedicalLine(
+                        label: 'Tanda vital',
+                        value: visit.vitalSigns.isEmpty
+                            ? 'Belum ada data tanda vital.'
+                            : visit.vitalSigns.join('\n'),
+                      ),
+                    ] else ...[
+                      _MedicalLine(label: 'Keluhan', value: visit.complaint),
+                      _MedicalLine(label: 'Diagnosis', value: visit.diagnosis),
+                      _MedicalLine(label: 'Tindakan', value: visit.treatment),
+                    ],
                   ],
                 ),
               ),

@@ -35,6 +35,8 @@ rumah sakit yang sama. Aplikasi mobile tidak terhubung langsung ke MySQL.
 
 - Login pasien dan pemuatan profil, pasien yang terhubung, janji, serta riwayat
   pemeriksaan melalui API `/api/v1`.
+- Jadwal dokter dan dokter umum mengikuti jadwal backend; riwayat mobile memuat
+  hasil konsultasi dokter serta pembaruan kondisi dan tanda vital perawat.
 - Pendaftaran kunjungan langsung atau telekonsultasi.
 - Chat pasien dan dokter untuk janji telekonsultasi yang masih aktif.
 - Tagihan, rincian dan saldo, serta pengajuan pembayaran transfer/QRIS dengan

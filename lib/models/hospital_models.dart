@@ -116,11 +116,11 @@ class DoctorSchedule {
   factory DoctorSchedule.fromJson(Map<String, dynamic> json) {
     return DoctorSchedule(
       id: json['id'].toString(),
-      department: json['department_name'] as String,
-      doctor: json['doctor_name'] as String,
+      department: json['department'] as String,
+      doctor: json['doctor'] as String,
       startTime: (json['start_time'] as String).substring(0, 5),
       endTime: (json['end_time'] as String).substring(0, 5),
-      remainingQuota: (json['remaining_slots'] as num).toInt(),
+      remainingQuota: (json['remaining_quota'] as num).toInt(),
     );
   }
 }
@@ -153,6 +153,9 @@ class MedicalVisit {
   final String complaint;
   final String diagnosis;
   final String treatment;
+  final String source;
+  final String? condition;
+  final List<String> vitalSigns;
 
   const MedicalVisit({
     required this.id,
@@ -163,6 +166,9 @@ class MedicalVisit {
     required this.complaint,
     required this.diagnosis,
     required this.treatment,
+    this.source = 'doctor',
+    this.condition,
+    this.vitalSigns = const [],
   });
 }
 

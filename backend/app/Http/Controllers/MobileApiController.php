@@ -163,12 +163,14 @@ class MobileApiController extends Controller
             ->map(fn (object $appointment): array => $this->appointmentPayload($appointment));
 
         $visits = $this->visitsForPatients($patientIds);
+        $careUpdates = $this->careUpdatesForPatients($patientIds);
 
         return response()->json([
             'user' => $this->userPayload($request->user()),
             'patients' => $this->patientsForAccount($request),
             'appointments' => $appointments,
             'visits' => $visits,
+            'care_updates' => $careUpdates,
             'reports' => array_map(static fn (array $visit): array => [
                 'id' => 'report-'.$visit['id'],
                 'patient_id' => $visit['patient_id'],
@@ -642,6 +644,51 @@ class MobileApiController extends Controller
                 'complaint' => (string) ($visit->initial_complaint ?? ''),
                 'diagnosis' => $visit->diagnosis,
                 'treatment' => $visit->treatment_plan,
+            ])
+            ->all();
+    }
+
+    private function careUpdatesForPatients(\Illuminate\Support\Collection $patientIds): array
+    {
+        if ($patientIds->isEmpty()) {
+            return [];
+        }
+
+        return DB::table('patient_care_updates as updates')
+            ->leftJoin('inpatient_admissions as admissions', 'admissions.id', '=', 'updates.inpatient_admission_id')
+            ->whereIn('updates.patient_id', $patientIds)
+            ->whereNotNull('updates.inpatient_admission_id')
+            ->select([
+                'updates.id',
+                'updates.patient_id',
+                'updates.update_status',
+                'updates.temperature_celsius',
+                'updates.blood_pressure',
+                'updates.pulse_rate',
+                'updates.respiratory_rate',
+                'updates.oxygen_saturation',
+                'updates.notes',
+                'updates.created_at',
+                'admissions.room_number',
+                'admissions.bed_number',
+            ])
+            ->orderByDesc('updates.created_at')
+            ->orderByDesc('updates.id')
+            ->get()
+            ->map(static fn (object $update): array => [
+                'id' => (string) $update->id,
+                'patient_id' => (string) $update->patient_id,
+                'date' => (string) $update->created_at,
+                'condition' => $update->update_status,
+                'notes' => (string) ($update->notes ?? ''),
+                'recorded_by' => 'Perawat',
+                'room_number' => $update->room_number,
+                'bed_number' => $update->bed_number,
+                'temperature_celsius' => $update->temperature_celsius,
+                'blood_pressure' => $update->blood_pressure,
+                'pulse_rate' => $update->pulse_rate,
+                'respiratory_rate' => $update->respiratory_rate,
+                'oxygen_saturation' => $update->oxygen_saturation,
             ])
             ->all();
     }

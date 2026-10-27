@@ -84,6 +84,23 @@ class HospitalApiFixture {
             'treatment': 'Istirahat dan minum obat sesuai resep.',
           },
         ],
+        'care_updates': [
+          {
+            'id': '14',
+            'patient_id': '12',
+            'date': '2026-10-20T08:30:00',
+            'condition': 'Membaik',
+            'notes': 'Kondisi pasien membaik.',
+            'recorded_by': 'Perawat',
+            'room_number': '201',
+            'bed_number': 'B',
+            'temperature_celsius': 36.8,
+            'blood_pressure': '120/80',
+            'pulse_rate': 80,
+            'respiratory_rate': 18,
+            'oxygen_saturation': 98,
+          },
+        ],
         'reports': [
           {
             'id': 'report-91',
@@ -145,30 +162,37 @@ class HospitalApiFixture {
     }
     if (request.url.path.endsWith('/schedules')) {
       return _json(200, {
-        'data': {
-          'schedules': [
-            {
-              'id': 11,
-              'department_name': 'Penyakit Dalam',
-              'doctor_name': 'Dr. Ahmad',
-              'start_time': '09:00:00',
-              'end_time': '12:00:00',
-              'remaining_slots': 4,
-            },
-          ],
-        },
+        'data': [
+          {
+            'id': 12,
+            'department': 'Kardiologi',
+            'doctor': 'Dr. Fauzi',
+            'start_time': '08:00',
+            'end_time': '12:00',
+            'remaining_quota': 5,
+          },
+          {
+            'id': 11,
+            'department': 'Poli Umum',
+            'doctor': 'Dr. Ahmad',
+            'start_time': '09:00',
+            'end_time': '12:00',
+            'remaining_quota': 4,
+          },
+        ],
       });
     }
     if (request.url.path.endsWith('/appointments') &&
         request.method == 'POST') {
+      final isGeneralPractice = body['doctor_schedule_id'] == 11;
       final created = {
         'id': 33,
         'patient_id': body['patient_id'],
         'patient_name': 'Budi Santoso',
-        'poly': 'Penyakit Dalam',
-        'doctor': 'Dr. Ahmad',
+        'poly': isGeneralPractice ? 'Poli Umum' : 'Kardiologi',
+        'doctor': isGeneralPractice ? 'Dr. Ahmad' : 'Dr. Fauzi',
         'date': body['appointment_date'],
-        'schedule': '09:00',
+        'schedule': isGeneralPractice ? '09:00' : '08:00',
         'complaint': body['initial_complaint'],
         'consultation_type': body['consultation_type'] ?? 'In-Person',
         'queue_number': 'A-001',

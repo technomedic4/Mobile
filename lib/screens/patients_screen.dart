@@ -300,13 +300,38 @@ class PatientDetailScreen extends StatelessWidget {
               (visit) => Card(
                 child: ExpansionTile(
                   leading: const Icon(Icons.medical_information_outlined),
-                  title: Text('${visit.poly} · ${visit.date}'),
-                  subtitle: Text(visit.doctor),
+                  title: Text(
+                    visit.source == 'nursing'
+                        ? 'Pembaruan perawat · ${visit.date}'
+                        : '${visit.poly} · ${visit.date}',
+                  ),
+                  subtitle: Text(
+                    visit.source == 'nursing'
+                        ? '${visit.doctor} · ${visit.poly}'
+                        : visit.doctor,
+                  ),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   children: [
-                    _DetailLine(label: 'Keluhan', value: visit.complaint),
-                    _DetailLine(label: 'Diagnosis', value: visit.diagnosis),
-                    _DetailLine(label: 'Tindakan', value: visit.treatment),
+                    if (visit.source == 'nursing') ...[
+                      _DetailLine(
+                        label: 'Kondisi pasien',
+                        value: visit.condition ?? '',
+                      ),
+                      _DetailLine(
+                        label: 'Catatan perawat',
+                        value: visit.complaint,
+                      ),
+                      _DetailLine(
+                        label: 'Tanda vital',
+                        value: visit.vitalSigns.isEmpty
+                            ? 'Belum ada data tanda vital.'
+                            : visit.vitalSigns.join('\n'),
+                      ),
+                    ] else ...[
+                      _DetailLine(label: 'Keluhan', value: visit.complaint),
+                      _DetailLine(label: 'Diagnosis', value: visit.diagnosis),
+                      _DetailLine(label: 'Tindakan', value: visit.treatment),
+                    ],
                   ],
                 ),
               ),

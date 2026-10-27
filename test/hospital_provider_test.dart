@@ -22,9 +22,17 @@ void main() {
         expect(fixture.tokenStore.token, 'mobile-access-token');
         expect(fixture.provider.currentEmail, 'budi@example.test');
         expect(fixture.provider.patients.single.name, 'Budi Santoso');
+        expect(fixture.provider.visits, hasLength(2));
         expect(
-          fixture.provider.visits.single.diagnosis,
+          fixture.provider.visits.last.diagnosis,
           'Infeksi saluran pernapasan',
+        );
+        expect(fixture.provider.visits.first.source, 'nursing');
+        expect(fixture.provider.visits.first.doctor, 'Perawat');
+        expect(fixture.provider.visits.first.condition, 'Membaik');
+        expect(
+          fixture.provider.visits.first.vitalSigns,
+          contains('Tekanan darah 120/80 mmHg'),
         );
         expect(fixture.provider.reports.single.title, 'Ringkasan pemeriksaan');
         expect(fixture.requests.first.headers['authorization'], isNull);
@@ -95,16 +103,21 @@ void main() {
         await fixture.provider.login('budi@example.test', 'correct-password');
         final schedules = await fixture.provider.schedulesForDate('2026-11-02');
 
-        expect(schedules.single.doctor, 'Dr. Ahmad');
+        final generalPractice = schedules.singleWhere(
+          (schedule) => schedule.department == 'Poli Umum',
+        );
+        expect(generalPractice.doctor, 'Dr. Ahmad');
+        expect(generalPractice.remainingQuota, 4);
         final appointment = await fixture.provider.createAppointment(
           patientId: '12',
-          scheduleId: schedules.single.id,
+          scheduleId: generalPractice.id,
           date: '2026-11-02',
           complaint: 'Kontrol',
           consultationType: 'Teleconsultation',
         );
 
         expect(appointment.queueNumber, 'A-001');
+        expect(appointment.poly, 'Poli Umum');
         expect(fixture.provider.appointments.single.status, 'PENDING');
         final booking = fixture.requests
             .where(
